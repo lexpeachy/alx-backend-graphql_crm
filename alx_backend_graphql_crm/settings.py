@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles', 
+    'django_filters',
     'graphene_django',
     'crm',  # Assuming 'crm' is the name of your app
 ]
