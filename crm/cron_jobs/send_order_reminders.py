@@ -1,20 +1,26 @@
 #!/usr/bin/env python3
 
-import requests
+from gql import gql, Client
+from gql.transport.requests import RequestsHTTPTransport
 from datetime import datetime, timedelta
-import json
 
 def send_order_reminders():
-    # GraphQL endpoint
-    url = "http://localhost:8000/graphql"
+    # GraphQL endpoint configuration
+    transport = RequestsHTTPTransport(
+        url="http://localhost:8000/graphql",
+        use_json=True
+    )
+    
+    # Create GraphQL client
+    client = Client(transport=transport, fetch_schema_from_transport=True)
     
     # Calculate date 7 days ago
     seven_days_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
     
     # GraphQL query to get pending orders from the last 7 days
-    query = """
-    query {
-        orders(filter: {orderDate_Gte: "%s"}, status: "pending") {
+    query = gql("""
+    query GetPendingOrders($sevenDaysAgo: String!) {
+        orders(filter: {orderDate_Gte: $sevenDaysAgo}, status: "pending") {
             edges {
                 node {
                     id
@@ -26,27 +32,17 @@ def send_order_reminders():
             }
         }
     }
-    """ % seven_days_ago
+    """)
     
     try:
-        # Send GraphQL request
-        response = requests.post(url, json={'query': query})
-        response.raise_for_status()
-        
-        data = response.json()
-        
-        # Check for errors in GraphQL response
-        if 'errors' in data:
-            error_msg = f"GraphQL errors: {data['errors']}"
-            log_message(error_msg)
-            print(error_msg)
-            return
-        
-        # Extract orders from response
-        orders = data.get('data', {}).get('orders', {}).get('edges', [])
+        # Execute GraphQL query with variables
+        result = client.execute(query, variable_values={"sevenDaysAgo": seven_days_ago})
         
         # Get current timestamp
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Extract orders from result
+        orders = result.get('orders', {}).get('edges', [])
         
         # Log each order
         for order_edge in orders:
@@ -58,23 +54,15 @@ def send_order_reminders():
             log_entry = f"[{timestamp}] Order ID: {order_id}, Customer Email: {customer_email}, Order Date: {order_date}"
             log_message(log_entry)
         
-        # Print success message
+        # Print success message and log
         success_msg = f"[{timestamp}] Order reminders processed! Found {len(orders)} pending orders."
         log_message(success_msg)
         print("Order reminders processed!")
         
-    except requests.exceptions.RequestException as e:
-        error_msg = f"HTTP request failed: {e}"
-        log_message(error_msg)
-        print(error_msg)
-    except json.JSONDecodeError as e:
-        error_msg = f"JSON decode error: {e}"
-        log_message(error_msg)
-        print(error_msg)
     except Exception as e:
-        error_msg = f"Unexpected error: {e}"
+        error_msg = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error: {e}"
         log_message(error_msg)
-        print(error_msg)
+        print(f"Error: {e}")
 
 def log_message(message):
     """Append message to log file"""
