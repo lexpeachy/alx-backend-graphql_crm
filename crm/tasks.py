@@ -3,6 +3,7 @@ from gql import gql, Client
 from gql.transport.requests import RequestsHTTPTransport
 from datetime import datetime
 import logging
+import requests
 
 logger = logging.getLogger(__name__)
 
