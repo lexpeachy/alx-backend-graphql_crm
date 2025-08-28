@@ -369,3 +369,49 @@ class Mutation(graphene.ObjectType):
     create_order = CreateOrder.Field()
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
+import graphene
+from graphene_django.types import DjangoObjectType
+from products.models import Product  # Adjust import based on your app structure
+
+class ProductType(DjangoObjectType):
+    class Meta:
+        model = Product
+
+class UpdateLowStockProducts(graphene.Mutation):
+    class Arguments:
+        pass
+
+    updated_products = graphene.List(ProductType)
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    def mutate(self, info):
+        try:
+            # Query products with stock less than 10
+            low_stock_products = Product.objects.filter(stock__lt=10)
+            
+            # Update stock by incrementing by 10
+            updated_products = []
+            for product in low_stock_products:
+                product.stock += 10
+                product.save()
+                updated_products.append(product)
+            
+            return UpdateLowStockProducts(
+                updated_products=updated_products,
+                success=True,
+                message=f"Updated {len(updated_products)} low-stock products"
+            )
+            
+        except Exception as e:
+            return UpdateLowStockProducts(
+                updated_products=[],
+                success=False,
+                message=f"Error updating low-stock products: {str(e)}"
+            )
+
+class Mutation(graphene.ObjectType):
+    update_low_stock_products = UpdateLowStockProducts.Field()
+
+# Make sure to include this mutation in your main Mutation class
+# If you already have a Mutation class, add: update_low_stock_products = UpdateLowStockProducts.Field()
