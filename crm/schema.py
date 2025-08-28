@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from graphql import GraphQLError
 from datetime import datetime
 import re
-
+from crm.models import Product
 # --------------------------
 # TYPES
 # --------------------------
