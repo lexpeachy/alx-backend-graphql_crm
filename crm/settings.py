@@ -131,5 +131,6 @@ GRAPHENE = {
 
 # Add CRONJOBS configuration
 CRONJOBS = [
-    ('*/5 * * * *', 'crm.cron.log_crm_heartbeat'),
+    ('*/5 * * * *', 'crm.cron.log_crm_heartbeat'),  # Existing heartbeat job
+    ('0 */12 * * *', 'crm.cron.update_low_stock'),  # New low-stock job every 12 hours
 ]
